@@ -5,6 +5,7 @@ import tkinter as tk
 from tkinter import messagebox, simpledialog, Listbox, END
 from middleware.broker import Broker
 
+
 # Manage Broker Methods
 def new_user():
     username = simpledialog.askstring("Novo Usuário", "Digite o nome do usuário:")
@@ -47,30 +48,51 @@ def remove_topic():
     update_list()
 
 def update_list():
-    lista_usuarios.delete(0, END)
-    for u in bk.users:
-        lista_usuarios.insert(END, u)
+    users_list.delete(0, END)
+    for user in sorted(bk.users.keys()):
+        users_list.insert(END, user)
 
-    lista_topicos.delete(0, END)
-    for t in bk.topics:
-        lista_topicos.insert(END, t)
+    topics_list.delete(0, END)
+    for topic in sorted(bk.topics):
+        topics_list.insert(END, topic)
 
 bk = Broker()
 
 app = tk.Tk()
 app.title("Broker Manager")
+app.geometry("500x400")
+app.resizable(False, False)
 
-tk.Button(app, text="Criar Usuário", command=new_user).pack(fill="x")
-tk.Button(app, text="Criar Tópico", command=new_topic).pack(fill="x")
-tk.Button(app, text="Remover Tópico", command=remove_topic).pack(fill="x")
+# Frame das Listas
+frame_lists = tk.Frame(app)
+frame_lists.pack(fill="both", expand=True, padx=10, pady=10)
 
-tk.Label(app, text="Usuários:").pack()
-lista_usuarios = Listbox(app)
-lista_usuarios.pack(fill="both", expand=True)
+# Lista de Usuários
+tk.Label(frame_lists, text="Users").grid(row=0, column=0, sticky="w")
 
-tk.Label(app, text="Tópicos:").pack()
-lista_topicos = Listbox(app)
-lista_topicos.pack(fill="both", expand=True)
+users_list = tk.Listbox(frame_lists, height=10, width=30)
+users_list.grid(row=1, column=0, padx=5)
+
+# Lista de Tópicos
+tk.Label(frame_lists, text="Topics").grid(row=0, column=1, sticky="w")
+
+topics_list = tk.Listbox(frame_lists, height=10, width=30)
+topics_list.grid(row=1, column=1, padx=5)
+
+# Frame dos botões
+frame_buttons = tk.Frame(app)
+frame_buttons.pack(pady=10)
+
+# User Buttons
+tk.Button(frame_buttons, text="New User", command=new_user, width=20).grid(
+    row=0, column=0, padx=5, pady=5
+)
+tk.Button(frame_buttons, text="New Topic", command=new_topic, width=20).grid(
+    row=0, column=1, padx=5, pady=5
+)
+tk.Button(frame_buttons, text="Remove Topic", command=remove_topic, width=20).grid(
+    row=1, column=0, columnspan=2, pady=5
+)
 
 update_list()
 
