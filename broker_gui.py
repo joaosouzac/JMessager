@@ -63,7 +63,41 @@ app.title("Broker Manager")
 app.geometry("500x400")
 app.resizable(False, False)
 
-# Frame das Listas
+# User / Topic Frames
+frame_users = tk.Frame(app)
+frame_users.pack(side="left", fill="both", expand=True, padx=10, pady=10)
+
+frame_topics = tk.Frame(app)
+frame_topics.pack(side="right", fill="both", expand=True, padx=10, pady=10)
+
+# Users Frame - Label, List, Buttons
+tk.Label(frame_users, text="Users").grid(row=0, column=0, sticky="w")
+
+users_list = tk.Listbox(frame_users, height=10, width=30)
+users_list.grid(row=1, column=0, padx=5)
+
+tk.Button(frame_users, text="New User", command=new_user, width=20).grid(
+    row=2, column=0, padx=5, pady=5
+)
+
+tk.Button(frame_users, text="Remove User", state="disabled", width=20).grid(
+    row=3, column=0, padx=5, pady=5
+)
+
+# Topics Frame - Label, List, Buttons
+tk.Label(frame_topics, text="Topics").grid(row=0, column=0, sticky="w")
+
+topics_list = tk.Listbox(frame_topics, height=10, width=30)
+topics_list.grid(row=1, column=0, padx=5)
+
+tk.Button(frame_topics, text="New Topic", command=new_topic, width=20).grid(
+    row=2, column=0, padx=5, pady=5
+)
+tk.Button(frame_topics, text="Remove Topic", command=remove_topic, width=20).grid(
+    row=3, column=0, columnspan=2, pady=5
+)
+
+"""# Frame das Listas
 frame_lists = tk.Frame(app)
 frame_lists.pack(fill="both", expand=True, padx=10, pady=10)
 
@@ -92,7 +126,7 @@ tk.Button(frame_buttons, text="New Topic", command=new_topic, width=20).grid(
 )
 tk.Button(frame_buttons, text="Remove Topic", command=remove_topic, width=20).grid(
     row=1, column=0, columnspan=2, pady=5
-)
+)"""
 
 update_list()
 
