@@ -182,3 +182,4 @@ cython_debug/
 *.stackdump
 
 test/*
+data/*

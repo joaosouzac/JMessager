@@ -1,16 +1,62 @@
+import os
+import json
 import pika
 import threading
+
 
 class User:
     def __init__(self, username, host='127.0.0.1', port=5672):
         self.username = username
+
+        # Directory where JSON files will be stored
+        self._data_directory = os.path.join(
+            os.path.dirname(
+                os.path.dirname(__file__)
+            ), "data"
+        )
+
+        os.makedirs(self._data_directory, exist_ok=True)
+
+        # JSON file path inside 'data' directory
+        self._history_path = os.path.join(
+            self._data_directory, f"{self.username}_messages.json"
+        )
+
+        self.message_history = {
+            self.username: []
+        }
+
+        self.load_history()
 
         self.connection = pika.BlockingConnection(pika.ConnectionParameters(host, port=port))
 
         self.channel = self.connection.channel()
         self.channel.queue_declare(queue=username)
 
+
+    # Save queues / exchanges history to file
+    def save_history(self):
+        with open(self._history_path, "w") as file:
+            json.dump(self.message_history, file)
+
+    # Load queues / exchanges history from file
+    def load_history(self):
+        if os.path.exists(self._history_path):
+            with open(self._history_path, "r") as file:
+                self.message_history.update(json.load(file))
+
+    # Register queues / exchanges into the history
+    def register_message_to_history(self, destination, message):
+        if destination not in self.message_history:
+            self.message_history[destination] = []
+
+        self.message_history[destination].append(message)
+
+        self.save_history()
+
     def quit_connection(self):
+        self.save_history()
+
         self.connection.close()
 
     # Function to listen for direct messages to the user
