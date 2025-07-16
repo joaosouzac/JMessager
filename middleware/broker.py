@@ -1,23 +1,37 @@
 # Broker MOM
 
 import pika
+import requests
+
+
+# Configuração de autenticação da API do RabbitMQ Management
+BASE_URL = "http://localhost:15672/api"
 
 
 class Broker:
-    def __init__(self, debug=False):
+    def __init__(self, host='127.0.0.1', port=5672, debug=False):
         self.users = {} # Armazena os usuários cadastrados
         self.topics = set() # Armazena os nomes dos tópicos
 
         # Estabelece conexão com o servidor RabbitMQ (local)
-        self.connection = pika.BlockingConnection(pika.ConnectionParameters('localhost'))
+        self.connection = pika.BlockingConnection(pika.ConnectionParameters(host, port=port))
 
         # Cria canal de comunição AMQP para declarar filas, exchanges, etc.
         self.channel = self.connection.channel()
 
         self.debug = debug
+
+        self.sync_amqp()
     
     def close_connection(self):
         self.connection.close()
+
+    def sync_amqp(self, auth=('guest', 'guest')):
+        queues = requests.get(f"{BASE_URL}/queues", auth=auth).json()
+        exchanges = requests.get(f"{BASE_URL}/exchanges", auth=auth).json()
+
+        self.users = {queue["name"]: [] for queue in queues}
+        self.topics = {exchange["name"] for exchange in exchanges if exchange["type"] == "fanout" and exchange["name"]}
 
     # Seção de Gerenciamento de Usuários
     # Criar Usuário
