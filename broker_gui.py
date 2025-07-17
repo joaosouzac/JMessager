@@ -2,34 +2,35 @@
 
 import tkinter as tk
 
-from tkinter import messagebox, simpledialog, Listbox, END
+from tkinter import messagebox, simpledialog, END
 from middleware.broker import Broker
 
 
-# Manage Broker Methods
+# ------------- Broker Management Methods -------------------
 def new_user():
-    username = simpledialog.askstring("Novo Usuário", "Digite o nome do usuário:")
+    username = simpledialog.askstring("New User", "Enter username:")
 
     if not username:
         return
     
     if username in bk.users:
-        messagebox.showwarning("Erro", f"Usuário '{username}' já existe.")
+        messagebox.showwarning("Error", f"User '{username}' already exists.")
         return
     
     bk.create_user(username)
 
     update_list()
 
-    messagebox.showinfo("Sucesso", f"Usuário '{username}' criado.")
+    messagebox.showinfo("Success", f"User '{username}' created.")
 
 def new_topic():
-    topic = simpledialog.askstring("Novo Tópico", "Digite o nome do tópico:")
+    topic = simpledialog.askstring("New Topic", "Enter topic name:")
 
     if not topic:
         return
+    
     if topic in bk.topics:
-        messagebox.showwarning("Erro", f"Tópico '{topic}' já existe.")
+        messagebox.showwarning("Error", f"Topic '{topic}' already exists.")
         return
     
     bk.create_topic(topic)
@@ -37,10 +38,10 @@ def new_topic():
     update_list()
 
 def remove_topic():
-    topic = simpledialog.askstring("Remover Tópico", "Nome do tópico:")
+    topic = simpledialog.askstring("Remove Topic", "Topic name:")
 
     if not topic or topic not in bk.topics:
-        messagebox.showwarning("Erro", f"Tópico '{topic}' não existe.")
+        messagebox.showwarning("Error", f"Topic '{topic}' does not exist.")
         return
     
     bk.delete_topic(topic)
@@ -48,14 +49,17 @@ def remove_topic():
     update_list()
 
 def update_list():
+    # Update user list
     users_list.delete(0, END)
     for user in sorted(bk.users.keys()):
         users_list.insert(END, user)
 
+    # Update topic list
     topics_list.delete(0, END)
     for topic in sorted(bk.topics):
         topics_list.insert(END, topic)
 
+# ------------- GUI Configuration -------------------
 bk = Broker()
 
 app = tk.Tk()
@@ -80,10 +84,6 @@ tk.Button(frame_users, text="New User", command=new_user, width=20).grid(
     row=2, column=0, padx=5, pady=5
 )
 
-tk.Button(frame_users, text="Remove User", state="disabled", width=20).grid(
-    row=3, column=0, padx=5, pady=5
-)
-
 # Topics Frame - Label, List, Buttons
 tk.Label(frame_topics, text="Topics").grid(row=0, column=0, sticky="w")
 
@@ -97,38 +97,11 @@ tk.Button(frame_topics, text="Remove Topic", command=remove_topic, width=20).gri
     row=3, column=0, columnspan=2, pady=5
 )
 
-"""# Frame das Listas
-frame_lists = tk.Frame(app)
-frame_lists.pack(fill="both", expand=True, padx=10, pady=10)
-
-# Lista de Usuários
-tk.Label(frame_lists, text="Users").grid(row=0, column=0, sticky="w")
-
-users_list = tk.Listbox(frame_lists, height=10, width=30)
-users_list.grid(row=1, column=0, padx=5)
-
-# Lista de Tópicos
-tk.Label(frame_lists, text="Topics").grid(row=0, column=1, sticky="w")
-
-topics_list = tk.Listbox(frame_lists, height=10, width=30)
-topics_list.grid(row=1, column=1, padx=5)
-
-# Frame dos botões
-frame_buttons = tk.Frame(app)
-frame_buttons.pack(pady=10)
-
-# User Buttons
-tk.Button(frame_buttons, text="New User", command=new_user, width=20).grid(
-    row=0, column=0, padx=5, pady=5
-)
-tk.Button(frame_buttons, text="New Topic", command=new_topic, width=20).grid(
-    row=0, column=1, padx=5, pady=5
-)
-tk.Button(frame_buttons, text="Remove Topic", command=remove_topic, width=20).grid(
-    row=1, column=0, columnspan=2, pady=5
-)"""
-
+# Initializes lists on startup
 update_list()
 
+# Starts GUI loop
 app.mainloop()
+
+# Closes broker connection on exit
 bk.close_connection()
