@@ -4,6 +4,7 @@ import tkinter as tk
 
 from tkinter import messagebox, simpledialog, END
 from middleware.broker import Broker
+from popup_gui import ask_connection
 
 
 # ------------- Broker Management Methods -------------------
@@ -60,7 +61,9 @@ def update_list():
         topics_list.insert(END, topic)
 
 # ------------- GUI Configuration -------------------
-bk = Broker()
+bk_host, bk_port = ask_connection()
+
+bk = Broker(bk_host, bk_port)
 
 app = tk.Tk()
 app.title("Broker Manager")
