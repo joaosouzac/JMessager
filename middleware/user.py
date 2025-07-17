@@ -4,11 +4,17 @@ import pika
 import threading
 
 
+# User
 class User:
     def __init__(self, username, host='127.0.0.1', port=5672):
         self.username = username
+        self.message_history = {self.username: []}
+        self.subscriptions = set()
+        self.amqp_host = host
+        self.amqp_port = port
 
-        # Directory where JSON files will be stored
+
+       # Directory and file for JSON persistence
         self._data_directory = os.path.join(
             os.path.dirname(
                 os.path.dirname(__file__)
@@ -17,36 +23,48 @@ class User:
 
         os.makedirs(self._data_directory, exist_ok=True)
 
-        # JSON file path inside 'data' directory
         self._history_path = os.path.join(
             self._data_directory, f"{self.username}_messages.json"
         )
 
-        self.message_history = {
-            self.username: []
-        }
-
+        # Recover messages
         self.load_history()
 
+        # Connection for direct messages
         self.connection = pika.BlockingConnection(pika.ConnectionParameters(host, port=port))
 
         self.channel = self.connection.channel()
         self.channel.queue_declare(queue=username)
 
+        # Track topic connections to closer later
+        self.topic_connections = []
+
+        # Re-subscribe to previous topics
+        for topic in self.subscriptions:
+            self.subscribe_to_topic(topic, self.create_topic_callback(topic))
+
+
 
     # Save queues / exchanges history to file
     def save_history(self):
+        data = {
+            "subscriptions": list(self.subscriptions),
+            "messages": self.message_history
+        }
+
         with open(self._history_path, "w") as file:
-            json.dump(self.message_history, file)
+            json.dump(data, file)
 
     # Load queues / exchanges history from file
     def load_history(self):
         if os.path.exists(self._history_path):
             with open(self._history_path, "r") as file:
-                self.message_history.update(json.load(file))
+                data = json.load(file)
+                self.message_history.update(data.get("messages", {}))
+                self.subscriptions = set(data.get("subscriptions", []))
 
     # Register queues / exchanges into the history
-    def register_message_to_history(self, destination, message):
+    def register_message(self, destination, message):
         if destination not in self.message_history:
             self.message_history[destination] = []
 
@@ -56,52 +74,49 @@ class User:
 
     def quit_connection(self):
         self.save_history()
-
         self.connection.close()
 
-    # Function to listen for direct messages to the user
+        for conn in self.topic_connections:
+            conn.close()
+
+    # Listen to user's own queue
     def listen_user_queue(self, callback):
         self.channel.basic_consume(queue=self.username, on_message_callback=callback, auto_ack=True)
         self.channel.start_consuming()
-
-    # Function to listen for messages from a topic
-    def listen_topic_queue(self, queue, callback):
-        self.channel.basic_consume(queue=queue, on_message_callback=callback, auto_ack=True)
-
-        threading.Thread(target=self.channel.start_consuming, daemon=True).start()
 
     # Function to send a direct message to another user
     def send_direct_message(self, destination, message):
         self.channel.basic_publish(exchange='', routing_key=destination, body=message)
 
+    # Listen to a topic with dedicated connection and thread
+    def subscribe_to_topic(self, topic, callback):
+        if topic not in self.subscriptions:
+            self.subscriptions.add(topic)
+            self.save_history()
+
+        connection = pika.BlockingConnection(pika.ConnectionParameters(self.amqp_host, port=self.amqp_port))
+        channel = connection.channel()
+
+        result = channel.queue_declare(queue='', exclusive=True)
+        queue_name = result.method.queue
+        channel.queue_bind(exchange=topic, queue=queue_name)
+
+        def consume():
+            channel.basic_consume(queue=queue_name, on_message_callback=callback, auto_ack=True)
+            channel.start_consuming()
+
+        thread = threading.Thread(target=consume, daemon=True)
+        thread.start()
+
+        self.topic_connections.append(connection)
+    
     # Function to publish a message to a topic
     def publish_to_topic(self, topic, message):
         self.channel.basic_publish(exchange=topic, routing_key='', body=message)
 
-    # Function to subscribe to a topic
-    def subscribe_to_topic(self, topic, callback):
-        result = self.channel.queue_declare(queue='', exclusive=True)
-        queue_name = result.method.queue
+    def create_topic_callback(self, topic):
+        def callback(ch, method, properties, body):
+            decoded = body.decode()
+            self.register_message(topic, decoded)
 
-        self.channel.queue_bind(exchange=topic, queue=queue_name)
-
-        self.listen_topic_queue(queue_name, callback)
-
-    def show_menu(self):
-        threading.Thread(target=self.listen_user_queue, args=(self.username,), daemon=True).start()
-    
-        while True:
-            print("\n1) Enviar mensagem direta")
-            print("2) Publicar em tópico")
-            print("3) Assinar tópico")
-            print("0) Sair")
-            op = input("Escolha uma opção: ")
-
-            if op == "1":
-                self.send_direct_message()
-            elif op == "2":
-                self.publish_to_topic()
-            elif op == "3":
-                self.subscribe_to_topic(self.username)
-            elif op == "0":
-                break
+        return callback
