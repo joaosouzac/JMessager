@@ -4,10 +4,8 @@ import threading
 from tkinter import simpledialog, scrolledtext, messagebox
 from middleware.user import User
 
+from popup_gui import ask_connection
 
-user = User(
-    simpledialog.askstring("Login", "Enter username:")
-)
 
 # Function to write to message log
 def write_log(msg):
@@ -101,6 +99,14 @@ def publish_to_topic():
 
 
 # GUI Setup
+user_host, user_port = ask_connection()
+
+user = User(
+    simpledialog.askstring("Login", "Enter username:"),
+    user_host,
+    user_port
+)
+
 root = tk.Tk()
 root.title(f"Client - {user.username}")
 root.geometry("800x500")

@@ -1,4 +1,6 @@
-from tkinter import simpledialog
+import tkinter as tk
+
+from tkinter import simpledialog, messagebox
 
 
 def ask_connection():
